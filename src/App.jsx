@@ -7,6 +7,7 @@ import WelcomeScreen from './pages/WelcomeScreen';
 import VisitorRegistrationForm from './pages/VisitorRegistrationForm';
 import ApprovalWaitingScreen from './pages/ApprovalWaitingScreen';
 import ResidentApprovalPage from './pages/ResidentApprovalPage';
+import ResidentVerifyPage from './pages/ResidentVerifyPage';
 import AuthScreen from './pages/AuthScreen';
 import GateOpenScreen from './pages/GateOpenScreen';
 import ExitScreen from './pages/ExitScreen';
@@ -37,7 +38,6 @@ function KioskHeader() {
         <ShieldCheck size={28} />
         SecureGate Control
       </div>
-      <div className="kiosk-time">{time}</div>
     </div>
   );
 }
@@ -59,14 +59,16 @@ function App() {
     <Router>
       <NotificationProvider>
         <Routes>
-          <Route path="/" element={<KioskLayout><WelcomeScreen /></KioskLayout>} />
+          <Route path="/" element={<WelcomeScreen />} />
           <Route path="/register" element={<KioskLayout><VisitorRegistrationForm /></KioskLayout>} />
           <Route path="/waiting" element={<KioskLayout><ApprovalWaitingScreen /></KioskLayout>} />
           <Route path="/auth" element={<KioskLayout><AuthScreen /></KioskLayout>} />
-          <Route path="/gate" element={<KioskLayout><GateOpenScreen /></KioskLayout>} />
           <Route path="/exit" element={<KioskLayout><ExitScreen /></KioskLayout>} />
 
-          {/* External Resident Route - doesn't need kiosk container layout */}
+          {/* Resident verification — opened via WhatsApp link */}
+          <Route path="/resident/:id" element={<ResidentVerifyPage />} />
+
+          {/* Legacy resident approval route */}
           <Route path="/resident/approve/:id" element={<ResidentApprovalPage />} />
 
           {/* Legacy demo route — not part of the main visitor flow */}

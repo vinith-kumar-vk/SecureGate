@@ -1,0 +1,416 @@
+/* =============================================
+   SecureGate — Resident Verification Page CSS
+   Mobile-first, designed for phone screens
+   ============================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+.rv-page {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #1e3a5f 0%, #0f172a 100%);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.rv-card {
+    width: 100%;
+    max-width: 430px;
+    background: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ─── Header ─── */
+.rv-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.25rem 1rem;
+    background: linear-gradient(135deg, #1e40af, #1d4ed8);
+    color: white;
+}
+
+.rv-logo-icon {
+    opacity: 0.9;
+    flex-shrink: 0;
+}
+
+.rv-header-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.rv-header-sub {
+    font-size: 0.72rem;
+    opacity: 0.8;
+    margin-top: 1px;
+}
+
+/* ─── Section ─── */
+.rv-section {
+    padding: 1.125rem 1.25rem 0;
+}
+
+.rv-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 0 0 0.75rem;
+}
+
+/* ─── Visitor info grid ─── */
+.rv-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.rv-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.rv-info-row:last-child {
+    border-bottom: none;
+}
+
+.rv-info-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.rv-info-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.rv-info-label {
+    font-size: 0.68rem;
+    color: #9ca3af;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.rv-info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+/* ─── Camera section ─── */
+.rv-camera-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #0f172a;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rv-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rv-live-badge {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    background: rgba(239, 68, 68, 0.92);
+    color: white;
+    padding: 0.2rem 0.625rem;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    letter-spacing: 0.08em;
+    z-index: 5;
+}
+
+.rv-live-dot {
+    width: 7px;
+    height: 7px;
+    background: white;
+    border-radius: 50%;
+    display: inline-block;
+    animation: rvPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rvPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.rv-camera-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.rv-camera-hint {
+    position: absolute;
+    bottom: 0.625rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+    z-index: 5;
+}
+
+/* ─── Action buttons ─── */
+.rv-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1.25rem 1.25rem 0.75rem;
+    margin-top: auto;
+}
+
+.rv-btn {
+    flex: 1;
+    height: 52px;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+    font-family: inherit;
+}
+
+.rv-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.rv-btn--approve {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.rv-btn--approve:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.rv-btn--approve:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.rv-btn--reject {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.rv-btn--reject:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+}
+
+.rv-btn--reject:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* ─── Security note ─── */
+.rv-security-note {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #9ca3af;
+    padding: 0.5rem 1.25rem 1.25rem;
+    margin: 0;
+}
+
+/* ─── Spinner ─── */
+@keyframes rvSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.rv-spin {
+    animation: rvSpin 0.85s linear infinite;
+    flex-shrink: 0;
+}
+
+
+/* ════════ OUTCOME CARDS ════════ */
+
+.rv-card--error,
+.rv-card--loading {
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: #6b7280;
+    text-align: center;
+    padding: 2rem;
+    background: #f9fafb;
+}
+
+.rv-card--error h2 {
+    color: #111827;
+    margin: 0;
+}
+
+.rv-card--error p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.rv-hint {
+    font-size: 0.8rem;
+    color: #9ca3af !important;
+}
+
+.rv-card--approved,
+.rv-card--denied {
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 2.5rem 2rem;
+}
+
+.rv-card--approved {
+    background: linear-gradient(160deg, #f0fdf4, #ecfdf5);
+}
+
+.rv-card--denied {
+    background: linear-gradient(160deg, #fff5f5, #fef2f2);
+}
+
+.rv-outcome-icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: rvBounce 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.rv-outcome-icon--green {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.rv-outcome-icon--red {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+@keyframes rvBounce {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.rv-outcome-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.rv-green {
+    color: #065f46;
+}
+
+.rv-red {
+    color: #991b1b;
+}
+
+.rv-outcome-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 280px;
+}
+
+.rv-outcome-desc strong {
+    color: #111827;
+}
+
+.rv-outcome-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.rv-badge--green {
+    background: rgba(16, 185, 129, 0.1);
+    color: #065f46;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.rv-badge--red {
+    background: rgba(239, 68, 68, 0.08);
+    color: #991b1b;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}

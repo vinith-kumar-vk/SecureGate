@@ -513,11 +513,39 @@
     color: #7f1d1d;
 }
 
+/* Rejection Reason specific display */
+.denial-reason-container {
+    width: 100%;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #fef2f2;
+    border: 2px solid #fee2e2;
+    border-radius: 12px;
+    animation: bounceIn 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.denial-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+}
+
+.denial-reason-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #991b1b;
+    line-height: 1.4;
+}
+
 /* ─── Redirect text ─── */
 .outcome-redirect {
     font-size: 0.75rem;
     color: #9ca3af;
-    margin: 0.75rem 0 0;
+    margin: 1.25rem 0 0;
 }
 
 

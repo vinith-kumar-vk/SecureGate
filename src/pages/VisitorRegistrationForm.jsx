@@ -14,19 +14,60 @@ export default function VisitorRegistrationForm() {
     const { addNotification, removeNotification } = useNotification();
 
     const [formData, setFormData] = useState({
-        name: '', phone: '', flat: '', purpose: '', photo: null
+        name: '', phone: '', flat: '', purpose: '', customPurpose: '', photo: null
     });
     const [touched, setTouched] = useState({});
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
-    const [capturedImage, setCapturedImage] = useState(null);
 
-    const fileInputRef = useRef(null);
+    const videoRef = useRef(null);
+    const streamRef = useRef(null);
     const nameRef = useRef(null);
     const phoneRef = useRef(null);
     const flatRef = useRef(null);
     const purposeRef = useRef(null);
+
+    React.useEffect(() => {
+        const startCamera = async () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error("MediaDevices not supported. Use HTTPS!");
+                addNotification("Camera requires HTTPS. Please ensure the URL starts with https://", "error");
+                return;
+            }
+            try {
+                let stream = window.lastActiveStream;
+
+                // Safely check if stream is dead or missing
+                const isDead = !stream || stream.getTracks().every(t => t.readyState === 'ended');
+
+                if (isDead) {
+                    window.cameraPromise = navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                    });
+                    try {
+                        stream = await window.cameraPromise;
+                        window.lastActiveStream = stream;
+                    } catch (e) {
+                        window.cameraPromise = null;
+                        throw e;
+                    }
+                }
+                streamRef.current = stream;
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch (err) {
+                console.error("Tablet camera access failed:", err);
+                addNotification("Failed to access camera. Please check permissions.", "error");
+            }
+        };
+        startCamera();
+
+        return () => {
+            // Unmount handling
+        };
+    }, []);
 
     /* ── Validation ── */
     const validate = (name, value) => {
@@ -47,6 +88,9 @@ export default function VisitorRegistrationForm() {
             case 'purpose':
                 if (!value) return 'Please select a purpose';
                 return '';
+            case 'customPurpose':
+                if (formData.purpose === 'Other' && !value.trim()) return 'Please specify your purpose';
+                return '';
             default: return '';
         }
     };
@@ -63,12 +107,18 @@ export default function VisitorRegistrationForm() {
         setErrors(prev => ({ ...prev, [name]: validate(name, value) }));
     };
 
-    const isFormValid = () => (
-        formData.name && !validate('name', formData.name) &&
-        formData.phone && !validate('phone', formData.phone) &&
-        formData.flat && !validate('flat', formData.flat) &&
-        formData.purpose && !validate('purpose', formData.purpose)
-    );
+    const isFormValid = () => {
+        const baseValid = formData.name && !validate('name', formData.name) &&
+            formData.phone && !validate('phone', formData.phone) &&
+            formData.flat && !validate('flat', formData.flat) &&
+            formData.purpose && !validate('purpose', formData.purpose);
+
+        if (!baseValid) return false;
+        if (formData.purpose === 'Other') {
+            return formData.customPurpose && !validate('customPurpose', formData.customPurpose);
+        }
+        return true;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -78,8 +128,13 @@ export default function VisitorRegistrationForm() {
             flat: validate('flat', formData.flat),
             purpose: validate('purpose', formData.purpose),
         };
+        if (formData.purpose === 'Other') {
+            newErrors.customPurpose = validate('customPurpose', formData.customPurpose);
+            setTouched({ name: true, phone: true, flat: true, purpose: true, customPurpose: true });
+        } else {
+            setTouched({ name: true, phone: true, flat: true, purpose: true });
+        }
         setErrors(newErrors);
-        setTouched({ name: true, phone: true, flat: true, purpose: true });
 
         if (Object.values(newErrors).some(Boolean)) {
             addNotification('Please correct the highlighted errors.', 'error');
@@ -89,22 +144,28 @@ export default function VisitorRegistrationForm() {
         setIsSubmitting(true);
         const loadingId = addNotification('Transmitting entry request…', 'loading', 0);
         try {
-            const response = await apiService.registerVisitor(formData);
+            const payload = {
+                ...formData,
+                purpose: formData.purpose === 'Other' ? formData.customPurpose : formData.purpose
+            };
+            const response = await apiService.registerVisitor(payload);
             removeNotification(loadingId);
             addNotification('Entry request sent! Waiting for resident approval.', 'success');
             setSubmitSuccess(true);
+
             setTimeout(() => {
                 navigate('/waiting', {
                     state: {
                         flat: formData.flat,
                         requestId: response.data.requestId,
                         link: response.data.approvalLink,
+                        whatsappUrl: response.data.whatsappUrl
                     }
                 });
             }, 2500);
-        } catch {
+        } catch (err) {
             removeNotification(loadingId);
-            addNotification('Failed to send request. Please try again.', 'error');
+            addNotification('Failed to send request: ' + (err.message || 'Unknown error'), 'error');
             setIsSubmitting(false);
         }
     };
@@ -135,27 +196,7 @@ export default function VisitorRegistrationForm() {
             : <CheckCircle2 size={17} style={{ color: '#10b981', flexShrink: 0 }} />;
     };
 
-    /* ════════ SUCCESS SCREEN ════════ */
-    if (submitSuccess) {
-        return (
-            <div className="registration-page">
-                <div className="sg-card sg-card--success">
-                    <div className="sg-success-ring">
-                        <CheckCircle2 size={48} color="#10b981" />
-                    </div>
-                    <h2 className="sg-success-title">Entry Request Sent</h2>
-                    <p className="sg-success-desc">
-                        A notification has been sent to the resident of{' '}
-                        <strong>{formData.flat}</strong>. Please wait for approval.
-                    </p>
-                    <div className="sg-success-badge">
-                        <ShieldCheck size={16} />
-                        Resident Reviewing Your Request
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    /* (Success screen is now rendered inside the main return to preserve the video node) */
 
     /* ════════ MAIN FORM ════════ */
     return (
@@ -169,195 +210,228 @@ export default function VisitorRegistrationForm() {
                 </div>
 
                 {/* ── Header row ── */}
-                <div className="sg-header">
-                    <button
-                        type="button"
-                        className="sg-back"
-                        onClick={() => navigate('/')}
-                        aria-label="Go back"
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-                    <h2 className="sg-title">Visitor Entry</h2>
-                    <div className="sg-spacer" />
-                </div>
+                {!submitSuccess && (
+                    <div className="sg-header">
+                        <button
+                            type="button"
+                            className="sg-back"
+                            onClick={() => navigate('/')}
+                            aria-label="Go back"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        <h2 className="sg-title">Visitor Entry</h2>
+                        <div className="sg-spacer" />
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} noValidate>
 
-                    {/* ── Visitor Name ── */}
-                    <div className="sg-field">
-                        <label className="sg-label">Visitor Full Name</label>
-                        {/* 
-                          FLEX ROW approach — icon is a flex child, NOT inside input.
-                          input has no padding-left padding override issues.
-                        */}
-                        <div className={`sg-input-row ${wrapperState('name')}`}>
-                            <span className="sg-icon"><User size={18} /></span>
-                            <input
-                                ref={nameRef}
-                                type="text"
-                                name="name"
-                                className="sg-input"
-                                value={formData.name}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                placeholder="Enter full name"
-                                autoComplete="off"
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), phoneRef.current?.focus())}
-                            />
-                            <span className="sg-status"><StatusIcon field="name" /></span>
+                    <div style={{ display: submitSuccess ? 'none' : 'block' }}>
+                        {/* ── Visitor Name ── */}
+                        <div className="sg-field">
+                            <label className="sg-label">Visitor Full Name</label>
+                            <div className={`sg-input-row ${wrapperState('name')}`}>
+                                <span className="sg-icon"><User size={18} /></span>
+                                <input
+                                    ref={nameRef}
+                                    type="text"
+                                    name="name"
+                                    className="sg-input"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="Enter full name"
+                                    autoComplete="off"
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), phoneRef.current?.focus())}
+                                />
+                                <span className="sg-status"><StatusIcon field="name" /></span>
+                            </div>
+                            {touched.name && errors.name && (
+                                <span className="sg-error">
+                                    <AlertCircle size={12} />{errors.name}
+                                </span>
+                            )}
                         </div>
-                        {touched.name && errors.name && (
-                            <span className="sg-error">
-                                <AlertCircle size={12} />{errors.name}
-                            </span>
+
+                        {/* ── Phone Number ── */}
+                        <div className="sg-field">
+                            <label className="sg-label">Phone Number</label>
+                            <div className={`sg-input-row ${wrapperState('phone')}`}>
+                                <span className="sg-icon"><Phone size={18} /></span>
+                                <input
+                                    ref={phoneRef}
+                                    type="tel"
+                                    name="phone"
+                                    className="sg-input"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="10-digit mobile number"
+                                    autoComplete="off"
+                                    maxLength={10}
+                                    inputMode="numeric"
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), flatRef.current?.focus())}
+                                />
+                                <span className="sg-status"><StatusIcon field="phone" /></span>
+                            </div>
+                            {touched.phone && errors.phone && (
+                                <span className="sg-error">
+                                    <AlertCircle size={12} />{errors.phone}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* ── Flat / House Number ── */}
+                        <div className="sg-field">
+                            <label className="sg-label">Flat / House Number</label>
+                            <div className={`sg-input-row ${wrapperState('flat')}`}>
+                                <span className="sg-icon"><Home size={18} /></span>
+                                <input
+                                    ref={flatRef}
+                                    type="text"
+                                    name="flat"
+                                    className="sg-input"
+                                    value={formData.flat}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g. A-101 or B-205"
+                                    autoComplete="off"
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), purposeRef.current?.focus())}
+                                />
+                                <span className="sg-status"><StatusIcon field="flat" /></span>
+                            </div>
+                            {touched.flat && errors.flat && (
+                                <span className="sg-error">
+                                    <AlertCircle size={12} />{errors.flat}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* ── Purpose of Visit ── */}
+                        <div className="sg-field">
+                            <label className="sg-label">Purpose of Visit</label>
+                            <div className={`sg-input-row ${wrapperState('purpose')}`}>
+                                <span className="sg-icon"><Briefcase size={18} /></span>
+                                <select
+                                    ref={purposeRef}
+                                    name="purpose"
+                                    className="sg-input sg-select"
+                                    value={formData.purpose}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                >
+                                    <option value="" disabled>Select purpose</option>
+                                    <option value="Delivery">Delivery / Courier</option>
+                                    <option value="Guest">Guest / Friend</option>
+                                    <option value="Maintenance">Maintenance / Service</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                {!touched.purpose && (
+                                    <span className="sg-status sg-chevron"><ChevronDown size={16} /></span>
+                                )}
+                                {touched.purpose && (
+                                    <span className="sg-status"><StatusIcon field="purpose" /></span>
+                                )}
+                            </div>
+                            {touched.purpose && errors.purpose && (
+                                <span className="sg-error">
+                                    <AlertCircle size={12} />{errors.purpose}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* ── Custom Purpose (If Other) ── */}
+                        {formData.purpose === 'Other' && (
+                            <div className="sg-field" style={{ animation: 'sgFadeUp 0.3s ease-out' }}>
+                                <label className="sg-label">Specify Purpose</label>
+                                <div className={`sg-input-row ${wrapperState('customPurpose')}`}>
+                                    <span className="sg-icon"><Briefcase size={18} /></span>
+                                    <input
+                                        type="text"
+                                        name="customPurpose"
+                                        className="sg-input"
+                                        value={formData.customPurpose}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        placeholder="What is the purpose of your visit?"
+                                        autoComplete="off"
+                                    />
+                                    <span className="sg-status"><StatusIcon field="customPurpose" /></span>
+                                </div>
+                                {touched.customPurpose && errors.customPurpose && (
+                                    <span className="sg-error">
+                                        <AlertCircle size={12} />{errors.customPurpose}
+                                    </span>
+                                )}
+                            </div>
                         )}
                     </div>
 
-                    {/* ── Phone Number ── */}
-                    <div className="sg-field">
-                        <label className="sg-label">Phone Number</label>
-                        <div className={`sg-input-row ${wrapperState('phone')}`}>
-                            <span className="sg-icon"><Phone size={18} /></span>
-                            <input
-                                ref={phoneRef}
-                                type="tel"
-                                name="phone"
-                                className="sg-input"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                placeholder="10-digit mobile number"
-                                autoComplete="off"
-                                maxLength={10}
-                                inputMode="numeric"
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), flatRef.current?.focus())}
-                            />
-                            <span className="sg-status"><StatusIcon field="phone" /></span>
+                    {/* ── Submit Success Message Display ── */}
+                    {submitSuccess && (
+                        <div style={{ textAlign: 'center', marginBottom: '1.5rem', background: 'transparent' }}>
+                            <div className="sg-success-ring" style={{ margin: '0 auto 1rem' }}>
+                                <CheckCircle2 size={48} color="#10b981" />
+                            </div>
+                            <h2 className="sg-success-title">Entry Request Sent</h2>
+                            <p className="sg-success-desc">
+                                A notification has been sent to the resident of{' '}
+                                <strong>{formData.flat}</strong>. Please wait.
+                            </p>
                         </div>
-                        {touched.phone && errors.phone && (
-                            <span className="sg-error">
-                                <AlertCircle size={12} />{errors.phone}
-                            </span>
+                    )}
+
+                    {/* ── Tablet Live Camera Preview ── */}
+                    <div className="sg-field">
+                        {!submitSuccess && <label className="sg-label">Live Gate Camera</label>}
+                        <div style={{ position: 'relative', width: '100%', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '180px' }}>
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                            <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%', display: 'inline-block' }}></span>
+                                LIVE
+                            </div>
+                        </div>
+                        {!submitSuccess ? (
+                            <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '6px', textAlign: 'center' }}>
+                                This live video will be sent to the resident for verification.
+                            </p>
+                        ) : (
+                            <div className="sg-success-badge" style={{ marginTop: '1rem', justifyContent: 'center' }}>
+                                <ShieldCheck size={16} />
+                                Resident Reviewing Your Request
+                            </div>
                         )}
                     </div>
 
-                    {/* ── Flat / House Number ── */}
-                    <div className="sg-field">
-                        <label className="sg-label">Flat / House Number</label>
-                        <div className={`sg-input-row ${wrapperState('flat')}`}>
-                            <span className="sg-icon"><Home size={18} /></span>
-                            <input
-                                ref={flatRef}
-                                type="text"
-                                name="flat"
-                                className="sg-input"
-                                value={formData.flat}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                placeholder="e.g. A-101 or B-205"
-                                autoComplete="off"
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), purposeRef.current?.focus())}
-                            />
-                            <span className="sg-status"><StatusIcon field="flat" /></span>
-                        </div>
-                        {touched.flat && errors.flat && (
-                            <span className="sg-error">
-                                <AlertCircle size={12} />{errors.flat}
-                            </span>
-                        )}
-                    </div>
-
-                    {/* ── Purpose of Visit ── */}
-                    <div className="sg-field">
-                        <label className="sg-label">Purpose of Visit</label>
-                        <div className={`sg-input-row ${wrapperState('purpose')}`}>
-                            <span className="sg-icon"><Briefcase size={18} /></span>
-                            <select
-                                ref={purposeRef}
-                                name="purpose"
-                                className="sg-input sg-select"
-                                value={formData.purpose}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
+                    {!submitSuccess && (
+                        <>
+                            {/* ── Submit button ── */}
+                            <button
+                                type="submit"
+                                className="sg-submit"
+                                disabled={isSubmitting || !isFormValid()}
+                                data-loading={isSubmitting}
+                                data-disabled={!isFormValid()}
                             >
-                                <option value="" disabled>Select purpose</option>
-                                <option value="Delivery">Delivery / Courier</option>
-                                <option value="Guest">Guest / Friend</option>
-                                <option value="Maintenance">Maintenance / Service</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            {/* Dropdown chevron only when no status icon */}
-                            {!touched.purpose && (
-                                <span className="sg-status sg-chevron"><ChevronDown size={16} /></span>
-                            )}
-                            {touched.purpose && (
-                                <span className="sg-status"><StatusIcon field="purpose" /></span>
-                            )}
-                        </div>
-                        {touched.purpose && errors.purpose && (
-                            <span className="sg-error">
-                                <AlertCircle size={12} />{errors.purpose}
-                            </span>
-                        )}
-                    </div>
+                                {isSubmitting ? (
+                                    <><Loader2 size={20} className="sg-spin" /> Sending Request…</>
+                                ) : (
+                                    <>Send Entry Request <Send size={17} /></>
+                                )}
+                            </button>
 
-                    {/* ── Photo capture ── */}
-                    <div
-                        className={`sg-photo ${capturedImage ? 'sg-photo--filled' : ''}`}
-                        onClick={() => fileInputRef.current?.click()}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
-                    >
-                        {capturedImage ? (
-                            <>
-                                <img src={capturedImage} alt="Visitor" className="sg-photo-preview" />
-                                <div>
-                                    <div className="sg-photo-title" style={{ color: '#2563eb' }}>Photo captured ✓</div>
-                                    <div className="sg-photo-sub">Tap to retake</div>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="sg-photo-icon">
-                                    <Camera size={20} color="#2563eb" />
-                                </div>
-                                <div>
-                                    <div className="sg-photo-title">
-                                        Visitor Photo{' '}
-                                        <span style={{ fontWeight: 400, color: '#9ca3af' }}>(Optional)</span>
-                                    </div>
-                                    <div className="sg-photo-sub">Tap to capture for faster verification</div>
-                                </div>
-                            </>
-                        )}
-                        <input
-                            type="file" accept="image/*" capture="user"
-                            ref={fileInputRef}
-                            style={{ display: 'none' }}
-                            onChange={handlePhotoCapture}
-                        />
-                    </div>
-
-                    {/* ── Submit button ── */}
-                    <button
-                        type="submit"
-                        className="sg-submit"
-                        disabled={isSubmitting || !isFormValid()}
-                        data-loading={isSubmitting}
-                        data-disabled={!isFormValid()}
-                    >
-                        {isSubmitting ? (
-                            <><Loader2 size={20} className="sg-spin" /> Sending Request…</>
-                        ) : (
-                            <>Send Entry Request <Send size={17} /></>
-                        )}
-                    </button>
-
-                    <p className="sg-legal">
-                        By submitting, you agree to our Terms of Service and Privacy Policy.
-                    </p>
+                            <p className="sg-legal">
+                                By submitting, you agree to our Terms of Service and Privacy Policy.
+                            </p>
+                        </>
+                    )}
 
                 </form>
             </div>

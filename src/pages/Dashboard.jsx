@@ -7,16 +7,39 @@ import { useNotification } from '../components/NotificationProvider';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, ChartTooltip, Legend, Filler);
 
-const sampleVisitors = [
-    { id: 1, name: "Rahul Sharma", phone: "+91 98765 43210", flat: "A-101", purpose: "Delivery", status: "Approved", time: "10:30 AM", exitTime: "10:45 AM", host: "Amit Kumar", notes: "Amazon Package" },
-    { id: 2, name: "Priya Singh", phone: "+91 87654 32109", flat: "B-205", purpose: "Guest", status: "Waiting", time: "11:15 AM", exitTime: "-", host: "Rohit Sharma", notes: "Friend" },
-    { id: 3, name: "Suresh Patel", phone: "+91 76543 21098", flat: "C-302", purpose: "Maintenance", status: "Rejected", time: "09:45 AM", exitTime: "-", host: "Anjali Gupta", notes: "Plumber - Did not pick up" },
-    { id: 4, name: "Sneha Reddy", phone: "+91 65432 10987", flat: "A-404", purpose: "Other", status: "Checkout", time: "08:00 AM", exitTime: "11:30 AM", host: "Vikram Singh", notes: "Maid" },
-];
-
 export default function Dashboard() {
     const { addNotification } = useNotification();
     const [selectedVisitor, setSelectedVisitor] = useState(null);
+    const [visitors, setVisitors] = useState([]);
+    const [stats, setStats] = useState({ total: 0, waiting: 0, approved: 0, rejected: 0 });
+
+    React.useEffect(() => {
+        const fetchVisitors = async () => {
+            try {
+                const res = await fetch('/api/visitors');
+                const data = await res.json();
+                if (data.success) {
+                    setVisitors(data.data);
+
+                    // Calculate stats
+                    const statsObj = data.data.reduce((acc, v) => {
+                        acc.total++;
+                        if (v.status === 'waiting') acc.waiting++;
+                        else if (v.status === 'approved') acc.approved++;
+                        else if (v.status === 'denied') acc.rejected++;
+                        return acc;
+                    }, { total: 0, waiting: 0, approved: 0, rejected: 0 });
+                    setStats(statsObj);
+                }
+            } catch (err) {
+                console.error('Failed to fetch dashboard data:', err);
+            }
+        };
+
+        fetchVisitors();
+        const interval = setInterval(fetchVisitors, 5000); // Polling for live updates
+        return () => clearInterval(interval);
+    }, []);
 
     const trendData = {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -60,25 +83,25 @@ export default function Dashboard() {
             <div className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-header">
-                        <div><div className="stat-title">Total Visitors Today</div><div className="stat-value">124</div></div>
+                        <div><div className="stat-title">Total Visitors Today</div><div className="stat-value">{stats.total}</div></div>
                         <div className="stat-icon blue"><Users size={24} /></div>
                     </div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-header">
-                        <div><div className="stat-title">Waiting Approval</div><div className="stat-value">12</div></div>
+                        <div><div className="stat-title">Waiting Approval</div><div className="stat-value">{stats.waiting}</div></div>
                         <div className="stat-icon orange"><Clock size={24} /></div>
                     </div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-header">
-                        <div><div className="stat-title">Approved Entry</div><div className="stat-value">98</div></div>
+                        <div><div className="stat-title">Approved Entry</div><div className="stat-value">{stats.approved}</div></div>
                         <div className="stat-icon green"><CheckCircle size={24} /></div>
                     </div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-header">
-                        <div><div className="stat-title">Rejected / Denied</div><div className="stat-value">14</div></div>
+                        <div><div className="stat-title">Rejected / Denied</div><div className="stat-value">{stats.rejected}</div></div>
                         <div className="stat-icon red"><XCircle size={24} /></div>
                     </div>
                 </div>
@@ -103,13 +126,13 @@ export default function Dashboard() {
                             <tr><th>Visitor</th><th>Flat</th><th>Purpose</th><th>Status</th><th>Time</th></tr>
                         </thead>
                         <tbody>
-                            {sampleVisitors.map(v => (
+                            {visitors.map(v => (
                                 <tr key={v.id} onClick={() => setSelectedVisitor(v)}>
                                     <td>{v.name}</td>
                                     <td>{v.flat}</td>
                                     <td>{v.purpose}</td>
-                                    <td><span className={`status-badge status-${v.status.toLowerCase()}`}>{v.status}</span></td>
-                                    <td>{v.time}</td>
+                                    <td><span className={`status-badge status-${v.status === 'denied' ? 'rejected' : v.status.toLowerCase()}`}>{v.status}</span></td>
+                                    <td>{v.timestamp}</td>
                                 </tr>
                             ))}
                         </tbody>

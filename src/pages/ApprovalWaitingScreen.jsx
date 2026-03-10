@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-    ShieldCheck, Loader2, CheckCircle2, XCircle,
-    Camera, CameraOff, Eye, Home, Clock
-} from 'lucide-react';
+import { ShieldCheck, Loader2, CheckCircle2, XCircle, Camera, CameraOff, Eye, Home, Clock } from 'lucide-react';
+import { io } from 'socket.io-client';
+import { apiService } from '../services/apiService';
 import '../styles/visitor-form.css';
 import '../styles/waiting-screen.css';
 
@@ -12,76 +11,134 @@ export default function ApprovalWaitingScreen() {
     const location = useLocation();
 
     const visitorFlat = location.state?.flat || 'A-101';
-    const visitorName = location.state?.name || '';
+    const requestId = location.state?.requestId;
 
-    // status: 'waiting' | 'approved' | 'denied'
     const [status, setStatus] = useState('waiting');
+    const [denialReason, setDenialReason] = useState('');
     const [cameraError, setCameraError] = useState(false);
     const [dots, setDots] = useState('');
+
     const videoRef = useRef(null);
     const streamRef = useRef(null);
+    const socketRef = useRef(null);
+    const peerRef = useRef(null);
 
-    /* ── Animated dots ── */
+    // Animated dots
     useEffect(() => {
-        const id = setInterval(() => {
-            setDots(d => d.length >= 3 ? '' : d + '.');
-        }, 500);
+        const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
         return () => clearInterval(id);
     }, []);
 
-    /* ── Start live camera ── */
+    // Set up WebRTC and Socket
     useEffect(() => {
-        let cancelled = false;
-        const startCamera = async () => {
+        if (!requestId) {
+            const t = setTimeout(() => setStatus('approved'), 8000);
+            return () => clearTimeout(t);
+        }
+
+        const socket = io('/');
+        socketRef.current = socket;
+        socket.emit('join-room', requestId);
+
+        socket.on('status-update', (data) => {
+            if (data.status === 'approved' || data.status === 'denied') {
+                setStatus(data.status);
+                if (data.reason) setDenialReason(data.reason);
+            }
+        });
+
+        const setupWebRTC = async () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error("MediaDevices not supported. Use HTTPS!");
+                setCameraError(true);
+                return;
+            }
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-                });
-                if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+                let stream = window.lastActiveStream;
+                const isDead = !stream || stream.getTracks().every(t => t.readyState === 'ended');
+
+                if (isDead) {
+                    window.cameraPromise = navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                    });
+                    try {
+                        stream = await window.cameraPromise;
+                        window.lastActiveStream = stream;
+                    } catch (e) {
+                        window.cameraPromise = null;
+                        throw e;
+                    }
+                }
+
                 streamRef.current = stream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                 }
-            } catch {
-                if (!cancelled) setCameraError(true);
+
+                socket.emit('visitor-ready', requestId);
+
+                socket.on('resident-joined', async () => {
+                    if (peerRef.current) peerRef.current.close();
+
+                    const peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                    peerRef.current = peer;
+
+                    stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+                    peer.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            socket.emit('ice-candidate', { roomId: requestId, candidate: event.candidate });
+                        }
+                    };
+
+                    const offer = await peer.createOffer();
+                    await peer.setLocalDescription(offer);
+                    socket.emit('offer', { roomId: requestId, offer });
+                });
+
+                socket.on('answer', async (answer) => {
+                    if (peerRef.current) {
+                        try { await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer)); } catch (e) { }
+                    }
+                });
+
+                socket.on('ice-candidate', async (candidate) => {
+                    if (peerRef.current) {
+                        try { await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { }
+                    }
+                });
+
+            } catch (err) {
+                console.error("Camera access failed", err);
+                setCameraError(true);
             }
         };
-        startCamera();
+
+        setupWebRTC();
+
         return () => {
-            cancelled = true;
             streamRef.current?.getTracks().forEach(t => t.stop());
+            socket.disconnect();
+            peerRef.current?.close();
         };
-    }, []);
+    }, [requestId]);
 
-    /* ── Simulate resident approval after 7 seconds (demo) ──
-       Replace with real polling / websocket logic when backend is ready */
-    useEffect(() => {
-        if (status !== 'waiting') return;
-
-        // Demo: auto-approve after 7 seconds
-        const approveTimer = setTimeout(() => {
-            setStatus('approved');
-        }, 7000);
-
-        return () => clearTimeout(approveTimer);
-    }, [status]);
-
-    /* ── After approval/denial stop camera & navigate ── */
     useEffect(() => {
         if (status === 'approved') {
-            // stop camera — visitor sees success screen
             streamRef.current?.getTracks().forEach(t => t.stop());
-            const timer = setTimeout(() => navigate('/gate', { state: location.state }), 4000);
+            apiService.openGate(); // Trigger mock gate hardware
+            // Stay on this success screen for 10 seconds, then return home
+            const timer = setTimeout(() => navigate('/'), 10000);
             return () => clearTimeout(timer);
         }
         if (status === 'denied') {
             streamRef.current?.getTracks().forEach(t => t.stop());
-            const timer = setTimeout(() => navigate('/'), 5000);
+            // Stay on denial screen for 12 seconds to ensure visibility, then return home
+            const timer = setTimeout(() => navigate('/'), 12000);
             return () => clearTimeout(timer);
         }
     }, [status, navigate, location.state]);
 
-    /* ════════════════ APPROVED SCREEN ════════════════ */
     if (status === 'approved') {
         return (
             <div className="waiting-page">
@@ -91,26 +148,23 @@ export default function ApprovalWaitingScreen() {
                         <div className="pulse-ring delay" />
                         <CheckCircle2 size={56} color="#10b981" className="outcome-icon" />
                     </div>
-
-                    <h1 className="outcome-title approved-title">Entry Approved</h1>
-                    <p className="outcome-subtitle">Welcome! The gate is opening for you.</p>
-
+                    <h1 className="outcome-title approved-title">Access Approved. Welcome.</h1>
+                    <p className="outcome-subtitle">Gate opening...</p>
                     <div className="gate-animation">
                         <div className="gate-left" />
                         <div className="gate-right" />
                         <span className="gate-label">GATE OPENING</span>
                     </div>
-
                     <div className="outcome-info-box approved-info">
                         <ShieldCheck size={16} />
                         <span>Identity verified by resident — proceed to the gate</span>
                     </div>
+                    <p className="outcome-redirect">Returning to home screen{dots}</p>
                 </div>
             </div>
         );
     }
 
-    /* ════════════════ DENIED SCREEN ════════════════ */
     if (status === 'denied') {
         return (
             <div className="waiting-page">
@@ -118,80 +172,63 @@ export default function ApprovalWaitingScreen() {
                     <div className="outcome-icon-wrap denied">
                         <XCircle size={56} color="#ef4444" className="outcome-icon" />
                     </div>
+                    <h1 className="outcome-title denied-title">Access Denied</h1>
+                    <p className="outcome-subtitle">Your entry request was rejected by the resident.</p>
 
-                    <h1 className="outcome-title denied-title">Entry Denied</h1>
-                    <p className="outcome-subtitle">The resident declined your entry request.</p>
-
-                    <div className="outcome-info-box denied-info">
-                        <span>Please contact the resident directly or visit the front desk for assistance.</span>
+                    <div className="denial-reason-container">
+                        <label className="denial-label">REASON FOR REJECTION:</label>
+                        <div className="denial-reason-text">
+                            {denialReason || "No specific reason provided by resident."}
+                        </div>
                     </div>
 
+                    <div className="outcome-info-box denied-info">
+                        <Clock size={16} />
+                        <span>Please contact the resident or security for assistance.</span>
+                    </div>
                     <p className="outcome-redirect">Returning to home screen{dots}</p>
                 </div>
             </div>
         );
     }
 
-    /* ════════════════ WAITING SCREEN (with camera) ════════════════ */
     return (
         <div className="waiting-page">
             <div className="waiting-card">
-
-                {/* ── Header ── */}
                 <div className="waiting-badge">
                     <Loader2 size={13} className="badge-spinner" />
                     <span>Awaiting Resident Approval</span>
                 </div>
-
-                {/* ── Live Camera Section ── */}
                 <div className="camera-section">
                     <div className="camera-frame">
                         {cameraError ? (
                             <div className="camera-error">
                                 <CameraOff size={32} color="#94a3b8" />
                                 <span>Camera unavailable</span>
-                                <span className="camera-error-sub">Resident will be notified via app</span>
                             </div>
                         ) : (
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                className="camera-video"
-                            />
+                            <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
                         )}
-
-                        {/* LIVE badge */}
                         {!cameraError && (
                             <div className="live-badge">
                                 <span className="live-dot" />
                                 LIVE
                             </div>
                         )}
-
-                        {/* Corner guides */}
                         <div className="corner tl" /><div className="corner tr" />
                         <div className="corner bl" /><div className="corner br" />
                     </div>
-
-                    {/* Camera instruction */}
                     <div className="camera-instruction">
                         <Eye size={14} />
-                        <span>Please look clearly into the camera</span>
+                        <span>Please stand in front of the camera and look clearly.</span>
                     </div>
                 </div>
-
-                {/* ── Status ── */}
                 <div className="waiting-status">
                     <h2 className="waiting-title">Waiting for Approval{dots}</h2>
                     <p className="waiting-desc">
-                        Your entry request has been sent to the resident at{' '}
-                        <strong>Flat {visitorFlat}</strong>.
+                        Your entry request has been sent to the resident at <strong>Flat {visitorFlat}</strong>.
                     </p>
                 </div>
-
-                {/* ── Instructions ── */}
                 <div className="waiting-instructions">
                     <div className="instruction-item">
                         <div className="instruction-num">1</div>
@@ -206,8 +243,6 @@ export default function ApprovalWaitingScreen() {
                         <span>Do not move away — wait for the gate to open</span>
                     </div>
                 </div>
-
-                {/* ── Details row ── */}
                 <div className="waiting-meta">
                     <div className="meta-chip">
                         <Home size={13} />

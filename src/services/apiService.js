@@ -1,83 +1,87 @@
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+/* SecureGate — API Service
+   Connects to the Laravel backend(Proxied via Vite)
+   Falls back gracefully if the server is not running.
+   ================================================================ */
 
-// Mock database to hold request states: waiting, approved, denied
-const mockRequests = {};
+const BASE_URL = '/api';
+
+async function request(method, path, body = null) {
+    try {
+        const opts = {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+        };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(`${BASE_URL}${path}`, opts);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || `Server error ${res.status}`);
+        return json;
+    } catch (err) {
+        // Network error — backend probably not running
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+            throw new Error('Laravel Backend server not reachable. Please run: php artisan serve');
+        }
+        throw err;
+    }
+}
 
 export const apiService = {
+    /* ── Visitor Registration ──────────────────────────────────
+       POST /api/register
+       Returns { requestId, approvalLink, smsStatus }            */
     async registerVisitor(data) {
-        await delay(1000);
-        const requestId = Date.now().toString();
-        const timestamp = new Date().toLocaleTimeString();
-
-        mockRequests[requestId] = {
-            id: requestId,
-            ...data,
-            timestamp,
-            status: 'waiting'
-        };
-
-        const approvalLink = `${window.location.origin}/resident/approve/${requestId}`;
-
-        return {
-            success: true,
-            message: "Visitor registered successfully.",
-            data: {
-                requestId,
-                approvalLink
-            }
-        };
+        return request('POST', '/register', {
+            name: data.name,
+            phone: data.phone,
+            flat: data.flat,
+            purpose: data.purpose,
+        });
     },
 
+    /* ── Poll for status (visitor waiting screen) ──────────────
+       GET /api/status/:id
+       Returns { status: 'waiting' | 'approved' | 'denied' }     */
     async checkRequestStatus(requestId) {
-        // no artificial delay to make polling snappy
-        const req = mockRequests[requestId];
-        if (!req) throw new Error('Request not found');
-        return { success: true, status: req.status };
+        return request('GET', `/status/${requestId}`);
     },
 
+    /* ── Get visitor details (resident verification page) ───────
+       GET /api/request/:id                                       */
     async getRequestDetails(requestId) {
-        await delay(500);
-        const req = mockRequests[requestId];
-        if (!req) throw new Error('Request not found');
-        return { success: true, data: req };
+        return request('GET', `/request/${requestId}`);
     },
 
+    /* ── Resident approves visitor ─────────────────────────────
+       POST /api/approve/:id                                      */
     async approveVisitor(requestId) {
-        await delay(1000);
-        if (mockRequests[requestId]) {
-            mockRequests[requestId].status = 'approved';
-        }
-        return { success: true, message: "Request approved." };
+        return request('POST', `/approve/${requestId}`);
     },
 
-    async rejectVisitor(requestId) {
-        await delay(1000);
-        if (mockRequests[requestId]) {
-            mockRequests[requestId].status = 'denied';
-        }
-        return { success: true, message: "Request rejected." };
+    /* ── Resident rejects visitor ──────────────────────────────
+       POST /api/reject/:id                                       */
+    async rejectVisitor(requestId, reason = '') {
+        return request('POST', `/reject/${requestId}`, { reason });
     },
 
+    /* ── Legacy stubs (kept for other pages) ────────────────── */
     async verifyOTP(otp) {
-        await delay(1200);
-        if (otp === '1234') {
-            return { success: true, message: "OTP Verified successfully." };
-        }
+        await new Promise(r => setTimeout(r, 1000));
+        if (otp === '1234') return { success: true, message: 'OTP Verified.' };
         throw new Error('Invalid OTP');
     },
 
-    async verifyQR(qrData) {
-        await delay(1200);
-        return { success: true, message: "QR Code Verified successfully." };
+    async verifyQR() {
+        await new Promise(r => setTimeout(r, 1000));
+        return { success: true, message: 'QR Code Verified.' };
     },
 
     async openGate() {
-        await delay(2000);
-        return { success: true, message: "Gate Opened." };
+        await new Promise(r => setTimeout(r, 1500));
+        return { success: true, message: 'Gate Opened.' };
     },
 
-    async recordExit(method) {
-        await delay(1000);
-        return { success: true, message: "Exit recorded successfully." };
-    }
+    async recordExit() {
+        await new Promise(r => setTimeout(r, 800));
+        return { success: true, message: 'Exit recorded.' };
+    },
 };

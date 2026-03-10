@@ -3,26 +3,37 @@ import { Search, Download, Filter, ClipboardList } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useNotification } from '../components/NotificationProvider';
 
-const entryLogData = [
-    { id: 1, visitor: "Rahul Sharma", flat: "A-101", entry: "2023-10-25 10:30 AM", exit: "2023-10-25 10:45 AM", approvedBy: "Ramesh Kumar", guard: "Ram Singh" },
-    { id: 2, visitor: "Priya Singh", flat: "B-205", entry: "2023-10-25 11:15 AM", exit: "-", approvedBy: "Sneha Reddy", guard: "Ram Singh" },
-    { id: 3, visitor: "Suresh Patel", flat: "C-302", entry: "2023-10-25 09:45 AM", exit: "-", approvedBy: "Auto-Rejected", guard: "Abdul Khan" },
-    { id: 4, visitor: "Sneha Reddy", flat: "A-404", entry: "2023-10-25 08:00 AM", exit: "2023-10-25 11:30 AM", approvedBy: "Vikram Singh", guard: "Abdul Khan" },
-];
-
 export default function EntryLogs() {
     const { addNotification } = useNotification();
     const [searchQuery, setSearchQuery] = useState('');
+    const [logs, setLogs] = useState([]);
+
+    React.useEffect(() => {
+        const fetchLogs = async () => {
+            try {
+                const res = await fetch('/api/visitors');
+                const data = await res.json();
+                if (data.success) {
+                    setLogs(data.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch logs:', err);
+            }
+        };
+        fetchLogs();
+        const interval = setInterval(fetchLogs, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleExport = () => {
         addNotification('Preparing audit logs export...', 'loading', 2000);
         setTimeout(() => addNotification('Audit logs exported successfully', 'success'), 2000);
     };
 
-    const filteredLogs = entryLogData.filter(log =>
-        log.visitor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.flat.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.guard.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredLogs = logs.filter(log =>
+        log.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.flat?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (log.guard || 'Ram Singh').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -65,17 +76,24 @@ export default function EntryLogs() {
                         <tbody>
                             {filteredLogs.map(log => (
                                 <tr key={log.id}>
-                                    <td style={{ fontWeight: 600 }}>{log.visitor}</td>
+                                    <td style={{ fontWeight: 600 }}>{log.name}</td>
                                     <td><span className="flat-badge">{log.flat}</span></td>
-                                    <td style={{ fontSize: '0.875rem' }}>{log.entry}</td>
-                                    <td style={{ fontSize: '0.875rem', color: log.exit === '-' ? 'var(--admin-warning)' : 'inherit' }}>
-                                        {log.exit}
+                                    <td style={{ fontSize: '0.875rem' }}>{log.timestamp}</td>
+                                    <td style={{ fontSize: '0.875rem', color: (log.exitStatus || '-') === '-' ? 'var(--admin-warning)' : 'inherit' }}>
+                                        {log.exitStatus || '-'}
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '0.875rem' }}>{log.approvedBy}</div>
+                                        <div style={{ fontSize: '0.875rem' }}>
+                                            {log.status === 'approved' ? 'Resident Approved' : log.status === 'denied' ? 'Resident Rejected' : 'Pending'}
+                                            {log.status === 'denied' && log.reason && (
+                                                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--admin-warning)', marginTop: '4px' }}>
+                                                    Reason: {log.reason}
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '0.875rem', color: 'var(--admin-text-muted)' }}>{log.guard}</div>
+                                        <div style={{ fontSize: '0.875rem', color: 'var(--admin-text-muted)' }}>{log.guard || 'Ram Singh'}</div>
                                     </td>
                                 </tr>
                             ))}

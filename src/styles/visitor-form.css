@@ -24,24 +24,26 @@
     }
 }
 
-/* ─── Card ─── */
 .sg-card {
     width: 100%;
     max-width: 440px;
     background: #ffffff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.6);
     border-radius: 20px;
     padding: 1.625rem 1.875rem 2rem;
     box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 8px 24px rgba(47, 107, 255, 0.07);
+        0 4px 6px -1px rgba(0, 0, 0, 0.05),
+        0 10px 25px -5px rgba(37, 99, 235, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
     box-sizing: border-box;
     margin: 0 auto;
+    position: relative;
+    backdrop-filter: blur(10px);
 }
 
 /* Kiosk background */
 .kiosk-container {
-    background: linear-gradient(135deg, #eef2ff 0%, #e8eeff 60%, #f0f4ff 100%) !important;
+    background: #ffffff !important;
 }
 
 /* ─── Trust badge ─── */
@@ -223,10 +225,13 @@
 .sg-input {
     flex: 1;
     height: 100%;
-    padding: 0;
-    border: none;
-    background: transparent;
-    outline: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 0 !important;
     font-size: 0.9rem;
     font-weight: 500;
     color: #111827;
@@ -240,6 +245,13 @@
     color: #9ca3af;
     font-weight: 400;
     font-size: 0.875rem;
+}
+
+.sg-input:focus,
+.sg-select:focus {
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
 }
 
 /* Select — needs extra padding-right for native dropdown arrow (hidden on most) */
