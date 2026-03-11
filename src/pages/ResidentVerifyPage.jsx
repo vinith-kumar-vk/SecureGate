@@ -138,7 +138,7 @@ export default function ResidentVerifyPage() {
         return (
             <div className="rv-page">
                 <div className="rv-card rv-card--loading">
-                    <Loader2 size={40} className="rv-spin" color="#2563eb" />
+                    <Loader2 size={40} className="rv-spin" color="#FF5C2A" />
                     <p>Loading visitor details…</p>
                 </div>
             </div>

@@ -23,7 +23,7 @@ export default function WelcomeScreen() {
                         display: flex;
                         justify-content: center;
                         align-items: center;
-                        background: #ffffff;
+                        background: #f3f4f6;
                         position: relative;
                         font-family: 'Inter', system-ui, sans-serif;
                         padding: 1.5rem;
@@ -48,7 +48,7 @@ export default function WelcomeScreen() {
                         padding: 3.5rem 2.5rem;
                         max-width: 520px;
                         width: 100%;
-                        box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.1), 
+                        box-shadow: 0 20px 40px -10px rgba(255, 92, 42, 0.1), 
                                     inset 0 1px 0 rgba(255, 255, 255, 1);
                         display: flex;
                         flex-direction: column;
@@ -61,7 +61,7 @@ export default function WelcomeScreen() {
                     }
                     .welcome-card:hover {
                         transform: translateY(-4px);
-                        box-shadow: 0 25px 50px -12px rgba(37, 99, 235, 0.15), 
+                        box-shadow: 0 25px 50px -12px rgba(255, 92, 42, 0.15), 
                                     inset 0 1px 0 rgba(255, 255, 255, 1);
                     }
                     @keyframes cardFadeIn {
@@ -87,14 +87,14 @@ export default function WelcomeScreen() {
                     .shield-container {
                         width: 80px;
                         height: 80px;
-                        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                        background: linear-gradient(135deg, #FFF5F2 0%, #FDD8CF 100%);
                         border-radius: 24px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.12),
+                        box-shadow: 0 8px 16px rgba(255, 92, 42, 0.12),
                                     inset 0 2px 4px rgba(255, 255, 255, 0.9);
-                        border: 1px solid rgba(191, 219, 254, 0.8);
+                        border: 1px solid rgba(253, 216, 207, 0.8);
                         margin-bottom: 2.25rem;
                         animation: pulseShield 2.5s infinite cubic-bezier(0.66, 0, 0, 1);
                         position: relative;
@@ -104,23 +104,23 @@ export default function WelcomeScreen() {
                         position: absolute;
                         inset: -4px;
                         border-radius: 28px;
-                        background: radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%);
+                        background: radial-gradient(circle, rgba(255, 92, 42,0.15), transparent 70%);
                         z-index: -1;
                         pointer-events: none;
                     }
                     @keyframes pulseShield {
-                        0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3); }
-                        70% { box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
-                        100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+                        0% { box-shadow: 0 0 0 0 rgba(255, 92, 42, 0.3); }
+                        70% { box-shadow: 0 0 0 20px rgba(255, 92, 42, 0); }
+                        100% { box-shadow: 0 0 0 0 rgba(255, 92, 42, 0); }
                     }
                     .sg-subtitle {
                         font-size: 0.75rem;
                         font-weight: 700;
-                        color: #3b82f6;
+                        color: #FF5C2A;
                         letter-spacing: 0.18em;
                         text-transform: uppercase;
                         margin-bottom: 1.5rem;
-                        background: linear-gradient(90deg, #2563eb, #3b82f6);
+                        background: linear-gradient(90deg, #FF5C2A, #FF5C2A);
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
                     }
@@ -142,7 +142,7 @@ export default function WelcomeScreen() {
                     }
                     .start-btn {
                         width: 100%;
-                        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                        background: #FF5C2A;
                         color: #ffffff;
                         border: none;
                         padding: 1.25rem 1rem;
@@ -154,7 +154,7 @@ export default function WelcomeScreen() {
                         align-items: center;
                         justify-content: center;
                         gap: 0.75rem;
-                        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35),
+                        box-shadow: 0 10px 25px rgba(255, 92, 42, 0.35),
                                     inset 0 1px 0 rgba(255, 255, 255, 0.2);
                         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
                         letter-spacing: 0.05em;
@@ -176,13 +176,13 @@ export default function WelcomeScreen() {
                     }
                     .start-btn:hover {
                         transform: scale(1.02) translateY(-2px);
-                        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.45),
+                        box-shadow: 0 14px 30px rgba(255, 92, 42, 0.45),
                                     inset 0 1px 0 rgba(255, 255, 255, 0.3);
-                        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                        background: #E64B20;
                     }
                     .start-btn:active {
                         transform: scale(0.98) translateY(1px);
-                        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+                        box-shadow: 0 4px 10px rgba(255, 92, 42, 0.3);
                     }
                     .start-btn:hover .arrow-icon {
                         animation: slideArrow 1s infinite ease-in-out;
@@ -208,7 +208,7 @@ export default function WelcomeScreen() {
                 </div>
 
                 <div className="shield-container">
-                    <ShieldCheck size={44} color="#2563eb" strokeWidth={1.5} />
+                    <ShieldCheck size={44} color="#FF5C2A" strokeWidth={1.5} />
                 </div>
 
                 <div className="sg-subtitle">SMART VISITOR ACCESS SYSTEM</div>

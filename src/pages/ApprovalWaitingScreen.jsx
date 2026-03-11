@@ -240,7 +240,7 @@ export default function ApprovalWaitingScreen() {
                     </div>
                     <div className="instruction-item">
                         <div className="instruction-num">3</div>
-                        <span>Do not move away — wait for the gate to open</span>
+                        <span>Do not move away — wait for approval</span>
                     </div>
                 </div>
                 <div className="waiting-meta">

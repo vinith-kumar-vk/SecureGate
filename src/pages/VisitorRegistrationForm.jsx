@@ -30,6 +30,11 @@ export default function VisitorRegistrationForm() {
 
     React.useEffect(() => {
         const startCamera = async () => {
+            if (!window.isSecureContext && window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                window.location.href = window.location.href.replace('http:', 'https:');
+                return;
+            }
+
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 console.error("MediaDevices not supported. Use HTTPS!");
                 addNotification("Camera requires HTTPS. Please ensure the URL starts with https://", "error");
@@ -120,8 +125,22 @@ export default function VisitorRegistrationForm() {
         return true;
     };
 
+    const capturePhoto = () => {
+        if (!videoRef.current) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.8);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Capture photo first
+        const photoData = capturePhoto();
+        
         const newErrors = {
             name: validate('name', formData.name),
             phone: validate('phone', formData.phone),
@@ -146,6 +165,7 @@ export default function VisitorRegistrationForm() {
         try {
             const payload = {
                 ...formData,
+                photo: photoData, // Add the captured photo
                 purpose: formData.purpose === 'Other' ? formData.customPurpose : formData.purpose
             };
             const response = await apiService.registerVisitor(payload);
