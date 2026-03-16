@@ -34,10 +34,10 @@ async function request(method, path, body = null) {
         } else {
             // Server returned HTML or text (likely an error page)
             if (!res.ok) {
-                console.error("Non-JSON Error:", text.substring(0, 200));
-                throw new Error(`Server returned error ${res.status}. Check backend logs.`);
+                console.error("Non-JSON Error:", text.substring(0, 500));
+                throw new Error(`Server returned error ${res.status}: ${text.substring(0, 100)}...`);
             }
-            throw new Error("Server did not return JSON. Check backend configuration.");
+            throw new Error("Server did not return JSON. Body: " + text.substring(0, 100));
         }
     } catch (err) {
         console.error("❌ API Request Failed:", err);
@@ -57,11 +57,16 @@ export const apiService = {
        POST /api/register
        Returns { requestId, approvalLink, smsStatus }            */
     async registerVisitor(data) {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const society_id = user.society_id || data.society_id;
+        
         return request('POST', '/register', {
             name: data.name,
             phone: data.phone,
             flat: data.flat,
             purpose: data.purpose,
+            photo: data.photo,
+            society_id: society_id
         });
     },
 
@@ -112,7 +117,92 @@ export const apiService = {
     },
 
     /* ── Get all visitors for dashboard/logs ────────────────── */
-    async getAllVisitors() {
-        return request('GET', '/visitors');
+    async getAllVisitors(params = {}) {
+        let path = '/visitors';
+        const query = new URLSearchParams(params).toString();
+        if (query) path += `?${query}`;
+        return request('GET', path);
     },
+
+    /* ── Society Management ────────────────────────────────── */
+    async getAllSocieties() {
+        return request('GET', '/societies');
+    },
+
+    async createSociety(data) {
+        return request('POST', '/societies', data);
+    },
+
+    async updateSociety(id, data) {
+        return request('PUT', `/societies/${id}`, data);
+    },
+
+    async deleteSociety(id) {
+        return request('DELETE', `/societies/${id}`);
+    },
+
+    /* ── Admin Management ─────────────────────────────────── */
+    async getAllAdmins(params = {}) {
+        let path = '/admins';
+        const query = new URLSearchParams(params).toString();
+        if (query) path += `?${query}`;
+        return request('GET', path);
+    },
+
+    async getAdminAuditLogs(params = {}) {
+        let path = '/audit-logs';
+        const query = new URLSearchParams(params).toString();
+        if (query) path += `?${query}`;
+        return request('GET', path);
+    },
+
+    async createAdmin(data) {
+        return request('POST', '/admins', data);
+    },
+
+    async updateAdmin(id, data) {
+        return request('PUT', `/admins/${id}`, data);
+    },
+
+    async deleteAdmin(id) {
+        return request('DELETE', `/admins/${id}`);
+    },
+
+    async resendAdminInvitation(id, data = {}) {
+        return request('POST', `/admins/${id}/resend-invitation`, data);
+    },
+
+    async bulkAdminAction(data) {
+        return request('POST', '/admins/bulk-action', data);
+    },
+
+    /* ── System Settings ─────────────────────────────────── */
+    async getSettings() {
+        return request('GET', '/settings');
+    },
+
+    async updateSettings(data) {
+        return request('POST', '/settings', data);
+    },
+
+    /* ── Announcements ───────────────────────────────────── */
+    async getAllAnnouncements() {
+        return request('GET', '/announcements');
+    },
+
+    async getActiveAnnouncements() {
+        return request('GET', '/announcements/active');
+    },
+
+    async createAnnouncement(data) {
+        return request('POST', '/announcements', data);
+    },
+
+    async updateAnnouncement(id, data) {
+        return request('PUT', `/announcements/${id}`, data);
+    },
+
+    async deleteAnnouncement(id) {
+        return request('DELETE', `/announcements/${id}`);
+    }
 };

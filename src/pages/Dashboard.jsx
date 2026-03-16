@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip as ChartTooltip, Legend, Filler, BarElement, ArcElement } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
-import { Users, Clock, CheckCircle, XCircle, Home, ShieldAlert, Zap, CheckSquare, Download, User, Search, Package } from 'lucide-react';
+import { Users, Clock, CheckCircle, XCircle, Home, ShieldAlert, Zap, CheckSquare, Download, User, Search, Package, Filter } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useNotification } from '../components/NotificationProvider';
 import { apiService } from '../services/apiService';
@@ -17,14 +17,18 @@ export default function Dashboard() {
     const [statusFilter, setStatusFilter] = useState('all');
 
     React.useEffect(() => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const society_id = user.society_id;
+
         const fetchVisitors = async () => {
             try {
-                const data = await apiService.getAllVisitors();
+                const data = await apiService.getAllVisitors(society_id ? { society_id } : {});
                 if (data.success) {
                     setVisitors(data.data);
 
                     // Calculate stats
-                    const statsObj = data.data.reduce((acc, v) => {
+                    const visitorsArr = Array.isArray(data.data) ? data.data : [];
+                    const statsObj = visitorsArr.reduce((acc, v) => {
                         acc.total++;
                         if (v.status === 'waiting') acc.waiting++;
                         else if (v.status === 'approved') acc.approved++;
@@ -247,7 +251,7 @@ export default function Dashboard() {
                                     <td><span className="badge badge-primary" style={{ background: '#FFF5F2', color: '#E64B20', borderRadius: '6px' }}>{v.flat}</span></td>
                                     <td>{v.purpose}</td>
                                     <td>
-                                        <span className={`status-badge status-${v.status === 'denied' ? 'rejected' : v.status.toLowerCase()}`}>
+                                        <span className={`status-badge status-${v.status === 'denied' ? 'rejected' : (v.status || '').toLowerCase()}`}>
                                             {v.status === 'approved' ? 'Completed' : v.status === 'denied' ? 'Canceled' : 'On Process'}
                                         </span>
                                     </td>

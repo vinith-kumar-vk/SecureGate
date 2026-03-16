@@ -22,6 +22,15 @@ import Reports from './pages/Reports';
 import SecurityAlerts from './pages/SecurityAlerts';
 import SystemSettings from './pages/SystemSettings';
 
+// Superadmin Pages
+import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
+import SuperadminSocieties from './pages/superadmin/SuperadminSocieties';
+import SuperadminUsers from './pages/superadmin/SuperadminUsers';
+import SuperadminAuditLogs from './pages/superadmin/SuperadminAuditLogs';
+import SuperadminAnnouncements from './pages/superadmin/SuperadminAnnouncements';
+import SuperadminLogin from './pages/superadmin/SuperadminLogin';
+import SuperadminSettings from './pages/superadmin/SuperadminSettings';
+
 function KioskHeader() {
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
@@ -84,6 +93,15 @@ function App() {
           <Route path="/entry-logs" element={<EntryLogs />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<SystemSettings />} />
+
+          {/* Superadmin Routes */}
+          <Route path="/superadmin/login" element={<SuperadminLogin />} />
+          <Route path="/superadmin" element={<SuperadminDashboard />} />
+          <Route path="/superadmin/societies" element={<SuperadminSocieties />} />
+          <Route path="/superadmin/users" element={<SuperadminUsers />} />
+          <Route path="/superadmin/announcements" element={<SuperadminAnnouncements />} />
+          <Route path="/superadmin/audit-logs" element={<SuperadminAuditLogs />} />
+          <Route path="/superadmin/settings" element={<SuperadminSettings />} />
         </Routes>
       </NotificationProvider>
     </Router>

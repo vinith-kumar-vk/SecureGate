@@ -24,6 +24,17 @@ export default function ResidentDirectory() {
         id: null, name: '', flat: '', phone: '', email: '', block: 'Block A', moveIn: '', status: 'Active', family: 1, vehicle: ''
     });
 
+    // Custom Confirm Modal State
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: null,
+        type: 'danger',
+        confirmText: 'Confirm'
+    });
+    const closeConfirmDialog = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+
     useEffect(() => {
         if (location.state && location.state.openAdd) {
             openAddModal();
@@ -44,10 +55,17 @@ export default function ResidentDirectory() {
     };
 
     const deleteResident = (id) => {
-        if (window.confirm('Remove this resident?')) {
-            setResidents(residents.filter(r => r.id !== id));
-            addNotification('Resident removed successfully', 'success');
-        }
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Remove Resident',
+            message: 'Are you sure you want to remove this resident? This action cannot be undone.',
+            type: 'danger',
+            confirmText: 'Remove',
+            onConfirm: () => {
+                setResidents(residents.filter(r => r.id !== id));
+                addNotification('Resident removed successfully', 'success');
+            }
+        });
     };
 
     const saveResident = (e) => {
@@ -186,6 +204,34 @@ export default function ResidentDirectory() {
                                 <button type="submit" className="btn-primary">Save Resident</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Confirm Modal */}
+            {confirmDialog.isOpen && (
+                <div className="modal-overlay" style={{ zIndex: 1100 }}>
+                    <div className="modal-content" style={{ maxWidth: '400px' }}>
+                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0 }}>{confirmDialog.title}</h3>
+                            <button onClick={closeConfirmDialog} className="action-btn" style={{ padding: 0 }}><XCircle size={20} color="var(--admin-text-muted)" /></button>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--admin-text)' }}>{confirmDialog.message}</p>
+                        </div>
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--admin-border)' }}>
+                            <button type="button" onClick={closeConfirmDialog} className="btn-secondary">Cancel</button>
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    confirmDialog.onConfirm();
+                                    closeConfirmDialog();
+                                }} 
+                                className="btn-primary"
+                                style={confirmDialog.type === 'danger' ? { background: 'var(--admin-error)' } : {}}
+                            >
+                                {confirmDialog.confirmText}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
