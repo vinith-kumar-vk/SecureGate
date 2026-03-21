@@ -1,0 +1,10 @@
+{
+  "appId": "com.securegate.app",
+  "appName": "SecureGate",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "url": "https://10.120.227.213:5174",
+    "cleartext": true
+  }
+}

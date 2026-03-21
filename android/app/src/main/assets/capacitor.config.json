@@ -3,12 +3,8 @@
 	"appName": "SecureGate",
 	"webDir": "dist",
 	"server": {
-		"cleartext": true,
-		"androidScheme": "http"
-	},
-	"plugins": {
-		"CapacitorHttp": {
-			"enabled": true
-		}
+		"androidScheme": "https",
+		"url": "https://10.120.227.213:5174",
+		"cleartext": true
 	}
 }

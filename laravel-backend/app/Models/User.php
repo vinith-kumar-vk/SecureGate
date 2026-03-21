@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'society_id',
         'permissions',
+        'flat_number',
         'invitation_status',
     ];
 

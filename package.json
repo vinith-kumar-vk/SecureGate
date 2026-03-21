@@ -12,6 +12,9 @@
     "start": "node server/index.js"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
     "chart.js": "^4.5.1",
     "lucide-react": "^0.577.0",
     "mysql2": "^3.19.1",

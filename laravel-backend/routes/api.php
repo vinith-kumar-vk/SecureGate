@@ -16,7 +16,15 @@ Route::post('/reject/{id}', [VisitorController::class, 'reject']);
 Route::post('/exit/{id}', [VisitorController::class, 'exit']);
 Route::get('/visitors', [VisitorController::class, 'getAll']);
 
+use App\Http\Controllers\ResidentController;
+
 Route::post('/login', [AuthController::class, 'login']);
+
+// Resident Management
+Route::get('/residents', [ResidentController::class, 'index']);
+Route::post('/residents', [ResidentController::class, 'store']);
+Route::put('/residents/{id}', [ResidentController::class, 'update']);
+Route::delete('/residents/{id}', [ResidentController::class, 'destroy']);
 
 // Society Management
 Route::get('/societies', [SocietyController::class, 'index']);

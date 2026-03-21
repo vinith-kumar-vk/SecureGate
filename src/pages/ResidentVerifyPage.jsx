@@ -102,7 +102,7 @@ export default function ResidentVerifyPage() {
         setProcessing(true);
         try {
             await apiService.approveVisitor(id);
-            // setDecision is handled automatically via socket 'status-update'
+            setDecision('approved'); // Set immediately, don't wait for socket
         } catch (err) {
             addNotification('Error: ' + err.message, 'error');
             setProcessing(false);
@@ -116,7 +116,7 @@ export default function ResidentVerifyPage() {
         setProcessing(true);
         try {
             await apiService.rejectVisitor(id, rejectReason);
-            // setDecision is handled automatically via socket 'status-update'
+            setDecision('denied'); // Set immediately, don't wait for socket
         } catch (err) {
             addNotification('Error: ' + err.message, 'error');
             setProcessing(false);

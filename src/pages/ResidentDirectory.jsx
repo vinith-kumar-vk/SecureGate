@@ -14,14 +14,15 @@ const initialResidents = [
 export default function ResidentDirectory() {
     const location = useLocation();
     const { addNotification } = useNotification();
-    const [residents, setResidents] = useState(initialResidents);
+    const [residents, setResidents] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [blockFilter, setBlockFilter] = useState('All Blocks');
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [currentResident, setCurrentResident] = useState({
-        id: null, name: '', flat: '', phone: '', email: '', block: 'Block A', moveIn: '', status: 'Active', family: 1, vehicle: ''
+        id: null, name: '', flat_number: '', phone: '', email: '', block: 'Block A', moveIn: '', status: 'Active', family: 1, vehicle: ''
     });
 
     // Custom Confirm Modal State
@@ -35,7 +36,30 @@ export default function ResidentDirectory() {
     });
     const closeConfirmDialog = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
 
+    const fetchResidents = async () => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/residents');
+            const data = await response.json();
+            if (data.success) {
+                // Map DB field flat_number to UI field flat
+                const mapped = data.data.map(r => ({
+                    ...r,
+                    flat: r.flat_number || '', // Backup for UI display
+                    status: 'Active', // Default status for now
+                    block: r.block || 'Block A'
+                }));
+                setResidents(mapped);
+            }
+        } catch (error) {
+            addNotification('Failed to load residents', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
+        fetchResidents();
         if (location.state && location.state.openAdd) {
             openAddModal();
             window.history.replaceState({}, document.title);
@@ -44,13 +68,13 @@ export default function ResidentDirectory() {
 
     const openAddModal = () => {
         setModalMode('add');
-        setCurrentResident({ id: Date.now(), name: '', flat: '', phone: '', email: '', block: 'Block A', moveIn: new Date().toISOString().split('T')[0], status: 'Active', family: 1, vehicle: '' });
+        setCurrentResident({ id: null, name: '', flat_number: '', phone: '', email: '', block: 'Block A', moveIn: new Date().toISOString().split('T')[0], status: 'Active', family: 1, vehicle: '' });
         setIsModalOpen(true);
     };
 
     const openEditModal = (res) => {
         setModalMode('edit');
-        setCurrentResident({ ...res });
+        setCurrentResident({ ...res, flat_number: res.flat });
         setIsModalOpen(true);
     };
 
@@ -61,31 +85,53 @@ export default function ResidentDirectory() {
             message: 'Are you sure you want to remove this resident? This action cannot be undone.',
             type: 'danger',
             confirmText: 'Remove',
-            onConfirm: () => {
-                setResidents(residents.filter(r => r.id !== id));
-                addNotification('Resident removed successfully', 'success');
+            onConfirm: async () => {
+                try {
+                    const response = await fetch(`/api/residents/${id}`, { method: 'DELETE' });
+                    const result = await response.json();
+                    if (result.success) {
+                        setResidents(residents.filter(r => r.id !== id));
+                        addNotification('Resident removed successfully', 'success');
+                    } else {
+                        addNotification(result.error || 'Failed to remove resident', 'error');
+                    }
+                } catch (error) {
+                    addNotification('Server connection failed', 'error');
+                }
             }
         });
     };
 
-    const saveResident = (e) => {
+    const saveResident = async (e) => {
         e.preventDefault();
         addNotification(modalMode === 'add' ? 'Creating resident profile...' : 'Updating profile...', 'loading', 1500);
 
-        setTimeout(() => {
-            if (modalMode === 'add') {
-                setResidents([...residents, currentResident]);
-                addNotification('Resident added successfully!', 'success');
+        try {
+            const url = modalMode === 'add' ? '/api/residents' : `/api/residents/${currentResident.id}`;
+            const method = modalMode === 'add' ? 'POST' : 'PUT';
+            
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentResident)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                await fetchResidents(); // Refresh the list from DB
+                addNotification(modalMode === 'add' ? 'Resident added successfully!' : 'Profile updated successfully!', 'success');
+                setIsModalOpen(false);
             } else {
-                setResidents(residents.map(r => r.id === currentResident.id ? currentResident : r));
-                addNotification('Profile updated successfully!', 'success');
+                addNotification(result.error || 'Failed to save resident', 'error');
             }
-            setIsModalOpen(false);
-        }, 1500);
+        } catch (error) {
+            addNotification('Server connection failed', 'error');
+        }
     };
 
     const filtered = residents.filter(r =>
-        (r.name.toLowerCase().includes(searchQuery.toLowerCase()) || r.flat.toLowerCase().includes(searchQuery.toLowerCase())) &&
+        (r.name.toLowerCase().includes(searchQuery.toLowerCase()) || (r.flat_number || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
         (blockFilter === 'All Blocks' || r.block === blockFilter)
     );
 
@@ -146,12 +192,12 @@ export default function ResidentDirectory() {
                                             <div style={{ fontWeight: 600 }}>{res.name}</div>
                                         </div>
                                     </td>
-                                    <td><span className="flat-badge">{res.flat}</span></td>
+                                    <td><span className="flat-badge">{res.flat_number || res.flat}</span></td>
                                     <td>
                                         <div style={{ fontSize: '0.875rem' }}>{res.phone}</div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>{res.email}</div>
                                     </td>
-                                    <td style={{ color: 'var(--admin-text-muted)' }}>{res.family} Members</td>
+                                    <td style={{ color: 'var(--admin-text-muted)' }}>{res.family || '-'} Members</td>
                                     <td>
                                         <span className={`status-badge status-${res.status.toLowerCase()}`}>
                                             <div className="status-dot"></div>
@@ -186,13 +232,17 @@ export default function ResidentDirectory() {
                                 </div>
                                 <div>
                                     <label className="input-label">Flat Number</label>
-                                    <input className="input-field" style={{ border: '1px solid var(--admin-border)' }} required value={currentResident.flat} onChange={e => setCurrentResident({ ...currentResident, flat: e.target.value })} />
+                                    <input className="input-field" style={{ border: '1px solid var(--admin-border)' }} required value={currentResident.flat_number} onChange={e => setCurrentResident({ ...currentResident, flat_number: e.target.value })} />
                                 </div>
                                 <div>
                                     <label className="input-label">Block</label>
                                     <select className="input-field" style={{ border: '1px solid var(--admin-border)' }} value={currentResident.block} onChange={e => setCurrentResident({ ...currentResident, block: e.target.value })}>
                                         <option>Block A</option><option>Block B</option><option>Block C</option><option>Block D</option>
                                     </select>
+                                </div>
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <label className="input-label">Email Address</label>
+                                    <input className="input-field" style={{ border: '1px solid var(--admin-border)' }} required type="email" value={currentResident.email} onChange={e => setCurrentResident({ ...currentResident, email: e.target.value })} />
                                 </div>
                                 <div style={{ gridColumn: 'span 2' }}>
                                     <label className="input-label">Phone Number</label>

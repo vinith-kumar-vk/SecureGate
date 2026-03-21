@@ -43,28 +43,32 @@ class VisitorController extends Controller
             if ($referer) {
                 $parsed = parse_url($referer);
                 if (isset($parsed['scheme']) && isset($parsed['host'])) {
+                    $scheme = $parsed['scheme']; // preserve https if that's what Vite uses
                     $host = $parsed['host'];
                     $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
-                    
-                    // If accessed via localhost, forcefully change to current network IP for mobile testing
-                    if ($host === 'localhost' || $host === '127.0.0.1') {
-                        $frontendUrl = env('FRONTEND_URL', 'https://10.100.20.80:5173'); 
-                    } else {
-                        // Force HTTPS for all mobile/network requests to ensure camera API and secure links work
-                        $frontendUrl = 'https://' . $host . $port;
-                    }
+                    $frontendUrl = $scheme . '://' . $host . $port;
                 }
             }
             
-            // Fallback securely to the stored network address if referer is missing
+            // Fallback to configured FRONTEND_URL or hardcoded IP
             if (empty($frontendUrl)) {
-                $frontendUrl = env('FRONTEND_URL', 'https://10.100.20.80:5173'); 
+                $frontendUrl = env('FRONTEND_URL', 'https://10.120.227.213:5174'); 
             }
 
             $verifyLink = $frontendUrl . "/resident/" . $requestId;
 
-            // Send email
-            $recipientEmail = 'vinithkumar78878@gmail.com';
+            // Dynamically find the resident associated with this flat
+            $resident = \App\Models\User::where('flat_number', $visitor->flat)->first();
+            
+            // Priority: User defined resident email > user's test email > fallback
+            if ($resident) {
+                $recipientEmail = $resident->email;
+            } elseif (strpos($visitor->flat, '105') !== false) {
+                $recipientEmail = 'vinithkumar78877@gmail.com';
+            } else {
+                $recipientEmail = 'vinithkumar78878@gmail.com';
+            }
+
             try {
                 Mail::to($recipientEmail)->send(new VisitorAlert($visitor, $verifyLink));
             } catch (\Exception $e) {

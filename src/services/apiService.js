@@ -3,11 +3,23 @@
    Falls back gracefully if the server is not running.
    ================================================================ */
 
-let BASE_URL = import.meta.env.VITE_API_URL || '';
-// Force relative proxy if local dev network to prevent "localhost" mixed-content blocks on mobile
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('10.') || window.location.hostname.startsWith('192.')) {
+// On Capacitor (Android APK), relative URLs don't work — must use absolute IP.
+// VITE_API_URL must be set to the backend server IP (e.g. http://10.120.227.213:8000)
+const isCapacitor = window.location.protocol === 'capacitor:' || 
+                    window.location.protocol === 'file:' ||
+                    (typeof window.Capacitor !== 'undefined');
+
+let BASE_URL = '';
+
+if (isCapacitor) {
+    // Mobile APK check: use absolute explicitly (no proxy available inside APK)
+    BASE_URL = import.meta.env.VITE_API_URL || 'http://10.120.227.213:8000';
+} else {
+    // Web Browsers (both localhost and mobile browser via 10.x IP):
+    // Leave EMPTY to use Vite's proxy automatically and avoid HTTP/HTTPS Mixed Content issues
     BASE_URL = '';
 }
+
 
 async function request(method, path, body = null) {
     try {

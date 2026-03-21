@@ -10,6 +10,7 @@ export default defineConfig({
   ],
   server: {
     host: true, // Listen on all network addresses
+    port: 5174,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

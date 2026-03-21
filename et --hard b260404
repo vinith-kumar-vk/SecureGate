@@ -1,0 +1,48 @@
+[33mcommit b260404949c8b77cf271db1f839e1d18111f636e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mvinith-code[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m
+Author: praveennatarajanin-droid <praveen.natarajan.in@gmail.com>
+Date:   Tue Mar 10 17:10:25 2026 +0530
+
+    Complete redesign of Welcome/Waiting screens, visitor flow simplification, and email/app password integration
+
+[33mcommit 210745c833fa86f1cae5a4e036e68e3c39350dfd[m
+Author: praveennatarajanin-droid <praveen.natarajan.in@gmail.com>
+Date:   Mon Mar 9 15:44:03 2026 +0530
+
+    lastly updated
+
+[33mcommit 045ecc6c2ad48492707260b043ee365ad82759ab[m
+Author: praveennatarajanin-droid <praveen.natarajan.in@gmail.com>
+Date:   Mon Mar 9 14:45:07 2026 +0530
+
+    Updated admin dashboard and added new features
+
+[33mcommit 696c386709c93b4691681c8296593696fd66bd1a[m
+Author: praveennatarajanin-droid <praveen.natarajan.in@gmail.com>
+Date:   Mon Mar 9 13:26:04 2026 +0530
+
+    Updated admin dashboard and UI improvements
+
+[33mcommit d5a6ac471d89f55e2c90a11ec8607a02cd378ff5[m
+Author: praveennatarajanin-droid <praveen.natarajan.in@gmail.com>
+Date:   Mon Mar 9 11:53:23 2026 +0530
+
+    Admin page and admin dashboard updated UI
+
+[33mcommit 2b9295a250f8525634020ecfc662e84159af07c1[m
+Merge: 56662ed dcd2432
+Author: praveennatarajanin-droid <praveen.natarajan.in@gmail.com>
+Date:   Mon Mar 9 10:43:37 2026 +0530
+
+    Added SecureGate frontend
+
+[33mcommit 56662ed1edacc51836315118f2084595f462be39[m
+Author: praveennatarajanin-droid <praveen.natarajan.in@gmail.com>
+Date:   Mon Mar 9 10:38:03 2026 +0530
+
+    Added SecureGate frontend project
+
+[33mcommit dcd24320ccdcf3870cf9c87757ea77390c68e525[m[33m ([m[1;31morigin/develop[m[33m, [m[1;32mdevelop[m[33m)[m
+Author: vinith <vinithkumarvijayan1998@gmail.com>
+Date:   Fri Mar 6 17:42:25 2026 +0530
+
+    Initial commit
