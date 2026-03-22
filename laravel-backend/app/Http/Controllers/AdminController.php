@@ -196,5 +196,32 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    public function dashboard()
+    {
+        try {
+            $totalResidents = User::where('role', 'resident')->count();
+            $totalAdmins = User::where('role', 'admin')->count();
+            $recentResidents = User::where('role', 'resident')
+                ->latest()
+                ->limit(5)
+                ->get();
+            
+            $recentAuditLogs = AdminAuditLog::latest()->limit(5)->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'stats' => [
+                        'total_residents' => $totalResidents,
+                        'total_admins' => $totalAdmins,
+                    ],
+                    'recent_residents' => $recentResidents,
+                    'recent_activity' => $recentAuditLogs,
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            \Log::error("Dashboard failed: " . $e->getMessage());
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 }

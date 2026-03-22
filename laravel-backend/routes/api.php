@@ -57,3 +57,5 @@ Route::get('/announcements/active', [GlobalAnnouncementController::class, 'getAc
 Route::post('/announcements', [GlobalAnnouncementController::class, 'store']);
 Route::put('/announcements/{id}', [GlobalAnnouncementController::class, 'update']);
 Route::delete('/announcements/{id}', [GlobalAnnouncementController::class, 'destroy']);
+// Dashboard Stats
+Route::get('/dashboard', [AdminController::class, 'dashboard']);

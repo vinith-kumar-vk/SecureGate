@@ -89,6 +89,11 @@ export const apiService = {
         return request('GET', `/status/${requestId}`);
     },
 
+    // Alias for ApprovalWaitingScreen compatibility
+    async getVisitorStatus(requestId) {
+        return this.checkRequestStatus(requestId);
+    },
+
     /* ── Get visitor details (resident verification page) ───────
        GET /api/request/:id                                       */
     async getRequestDetails(requestId) {

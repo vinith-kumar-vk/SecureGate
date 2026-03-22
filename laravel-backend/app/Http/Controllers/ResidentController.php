@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Models\AdminAuditLog;
 
 class ResidentController extends Controller
 {
@@ -46,6 +47,13 @@ class ResidentController extends Controller
                 'role' => 'resident',
                 'flat_number' => $request->flat_number,
                 'society_id' => $request->society_id ?: 1,
+            ]);
+
+            AdminAuditLog::create([
+                'user_id' => $resident->id,
+                'action' => 'Resident Created',
+                'description' => "Resident {$resident->name} (Flat: {$resident->flat_number}) was created.",
+                'ip_address' => $request->ip(),
             ]);
 
             return response()->json(['success' => true, 'data' => $resident], 201);
