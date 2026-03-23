@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar | IL2 RMUTTO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/layout.css') }}?v={{ time() }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <style>
+        :root {
+            --primary: #003a70;
+            --primary-light: #004d95;
+            --accent: #4338ca;
+            --bg: #f3f6f9;
+            --white: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --border: #e2e8f0;
+            --radius-md: 12px;
+            --radius-lg: 26px;
+            --radius-pill: 50px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .sidebar { 
+            grid-row: 1 / span 2;
+            background: #fff; 
+            border-radius: 20px; 
+            padding: 20px 10px 40px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02); 
+            min-height: 850px; /* Made long as requested */
+        }
+        .nav-link { 
+            display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-radius: 12px; 
+            text-decoration: none; color: #64748b; font-size: 14px; font-weight: 400; /* Removed bold */
+            margin-bottom: 2px; transition: 0.2s; 
+        }
+        .nav-link:hover { background: #f1f5f9; color: #0f172a; }
+        .nav-link.active { background: #f1f5f9; color: var(--primary); font-weight: 800; }
+        .nav-link img { width: 22px; height: 22px; opacity: 0.7; }
+        .nav-link.active img { opacity: 1; }
+
+        /* â”€â”€â”€ CONTENT AREA â”€â”€â”€ */
+        .main-content { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 30px; 
+            min-width: 0;
+            width: 100%;
+        }
+        .calendar-section, .schedule-section { 
+            width: 100%;
+        }
+
+        .card { 
+            background: #fff; 
+            border-radius: var(--radius-lg); 
+            padding: 30px; 
+            border: 1px solid #D7D7D7; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            width: 100%;
+        }
+
+        .content-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .cal-title { font-size: 24px; font-weight: 700; color: var(--text-main); }
+        .section-title { font-size: 18px; font-weight: 600; color: var(--text-main); margin-bottom: 15px; }
+
+        .btn-download {
+            background: #003a70; color: #fff; border: none; padding: 10px 20px; border-radius: 12px; 
+            font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        }
+
+        .calendar-nav-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .month-selector { display: flex; align-items: center; gap: 15px; font-size: 17px; font-weight: 800; }
+        .tab-group { display: flex; background: #f1f5f9; padding: 4px; border-radius: 10px; gap: 2px; overflow-x: auto; max-width: 100%; }
+        .tab-btn { border: none; background: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 400; color: var(--text-muted); cursor: pointer; }
+        .tab-btn.active { background: #fff; color: var(--text-main); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        .btn-new-schedule {
+            background: #4338ca; color: #fff; border: none; padding: 10px 20px; border-radius: 12px;
+            font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+
+        /* GRID */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        .day-label { text-align: center; font-size: 12px; font-weight: 500; color: var(--text-light); padding: 10px 0; }
+        .cal-cell {
+            aspect-ratio: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px; 
+            font-size: 13px; font-weight: 400; color: var(--text-muted); display: flex; flex-direction: column;
+            background: #fff; position: relative;
+        }
+        .cal-cell.inactive { background: #f8fafc; color: #cbd5e0; }
+        .cal-cell.today-cell .date-num { color: #3b82f6; }
+
+        .date-num { margin-bottom: 5px; }
+        .circle-num {
+            width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+
+        .event-box {
+            background: #fdf2f8; border-left: 3px solid #f472b6; border-radius: 4px; padding: 5px 8px;
+            width: 100%; margin-top: 5px; cursor: pointer;
+        }
+        .event-box h5 { font-size: 11px; font-weight: 500; color: var(--text-main); margin-bottom: 2px; }
+        .event-box p { font-size: 8px; color: var(--text-light); }
+
+        /* SCHEDULE SIDEBAR */
+        .sched-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .sched-search-wrap { position: relative; width: 240px; }
+        .sched-search-wrap input { width: 100%; padding: 10px 15px 10px 35px; border-radius: 30px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; font-weight: 400; background: #fff; }
+        .sched-search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
+
+        .sched-day-name { font-size: 13px; font-weight: 500; color: var(--text-light); margin-bottom: 20px; }
+        .sched-card { 
+            background: #fff; border-radius: 20px; padding: 20px; border: 1px solid #f1f5f9; 
+            display: flex; gap: 15px; margin-bottom: 15px; position: relative; 
+        }
+        .sched-time { font-size: 11px; font-weight: 400; color: var(--text-light); width: 60px; line-height: 1.4; flex-shrink: 0; }
+        .sched-time span { display: block; font-size: 9px; opacity: 0.6; margin: 3px 0; }
+        .sched-v-bar { width: 4px; border-radius: 2px; height: 40px; }
+        .sched-info h4 { font-size: 12px; color: var(--text-light); font-weight: 500; margin-bottom: 4px; }
+        .sched-info h3 { font-size: 14px; font-weight: 500; color: var(--text-main); }
+        .dots-btn { position: absolute; top: 20px; right: 20px; color: #cbd5e1; cursor: pointer; }
+
+        /* â”€â”€â”€ FOOTER â”€â”€â”€ */
+        footer {
+            grid-column: 1 / -1;
+            border-radius: 26px;
+            background: #fff; padding: 60px 40px; border-top: 1px solid #f1f5f9;
+            display: flex; justify-content: flex-start; gap: 100px; flex-wrap: wrap; margin-top: 40px;
+        }
+        .f-brand { flex: 1; min-width: 250px; }
+        .f-logo-circle { width: 60px; height: 60px; border-radius: 50%; background: #f8fafc; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .f-logo-circle img { height: 35px; }
+        .f-brand p { color: #64748b; font-size: 14.5px; line-height: 1.6; }
+        .f-col { flex: 0.6; min-width: 150px; }
+        .f-col ul { list-style: none; padding: 0; margin: 0; }
+        .f-col ul li { margin-bottom: 15px; }
+        .f-col ul li a { text-decoration: none; color: #475569; font-size: 14.5px; transition: 0.2s; }
+        .f-col ul li a:hover { color: var(--primary); }
+        .f-right { flex: 1; min-width: 250px; display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
+        .f-lang-select { 
+            padding: 10px 15px; border-radius: 25px; border: 1px solid #e2e8f0; background: #fff; 
+            color: #475569; font-size: 14px; outline: none; cursor: pointer; width: 140px;
+        }
+        .f-socials { display: flex; gap: 12px; }
+        .f-socials a { 
+            width: 38px; height: 38px; border-radius: 50%; background: #f1f5f9; 
+            display: flex; align-items: center; justify-content: center; transition: 0.2s; 
+        }
+        .f-socials a:hover { transform: translateY(-3px); background: #e2e8f0; }
+        .f-socials a img { height: 18px; width: 18px; object-fit: contain; }
+        .f-apps { display: flex; gap: 10px; }
+        .f-apps a img { height: 38px; }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .modal-box { 
+            background: #fff; width: 340px; border-radius: 20px; padding: 25px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; position: relative;
+        }
+        .modal-title { font-size: 16px; font-weight: 800; margin-bottom: 20px; color: var(--text-main); }
+        .modal-label { font-size: 12px; color: var(--text-light); font-weight: 600; margin-bottom: 10px; display: block; }
+        .modal-select { 
+            width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid #e2e8f0; 
+            font-size: 13px; font-weight: 600; margin-bottom: 20px; appearance: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 15px center;
+            background-size: 14px; outline: none;
+        }
+
+        .dl-list { display: flex; flex-direction: column; gap: 10px; }
+        .dl-item { 
+            display: flex; align-items: flex-start; gap: 15px; padding: 15px; 
+            border-radius: 12px; cursor: pointer; transition: 0.2s; 
+        }
+        .dl-item:hover, .dl-item.active { background: #f8fafc; }
+        .dl-icon { 
+            width: 36px; height: 36px; background: #f1f5f9; border-radius: 10px; 
+            display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; 
+        }
+        .dl-info h4 { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+        .dl-info p { font-size: 11px; color: var(--text-light); line-height: 1.3; }
+
+        .page-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-radius: 12px; margin-bottom: 5px; cursor: pointer; }
+        .p-info { display: flex; align-items: center; gap: 15px; }
+        .p-box { width: 34px; height: 34px; background: #e2e8f0; border-radius: 8px; }
+        .p-name { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+        .p-radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #e2e8f0; }
+        
+        .page-item.selected .p-box { background: #cbd5e0; }
+        .page-item.selected .p-name { color: var(--text-main); }
+        .page-item.selected .p-radio { background: #f97316; border-color: #f97316; }
+
+        .btn-done { 
+            width: 100%; background: #003a70; color: #fff; border: none; padding: 14px; 
+            border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 15px; 
+        }
+        @media (max-width: 1200px) {
+            .content-header-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .f-brand { margin-bottom: 20px; }
+            footer { flex-direction: column; gap: 40px; }
+            .f-right { align-items: flex-start; border-top: 1px solid #e2e8f0; padding-top: 30px; }
+        }
+
+        @media (max-width: 768px) {
+            .header-actions {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .sched-search-wrap, .btn-download {
+                width: 100%;
+            }
+            .btn-download {
+                justify-content: center;
+            }
+            
+            .calendar-nav-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            .tab-group { width: 100%; }
+            .btn-new-schedule { width: 100%; justify-content: center; }
+
+            .calendar-grid { grid-template-columns: repeat(7, 1fr); gap: 5px; font-size: 10px; }
+            .cal-cell { padding: 4px; font-size: 11px; }
+            .date-num { margin-bottom: 2px; }
+            .circle-num { width: 18px; height: 18px; font-size: 10px; }
+            .event-box h5 { font-size: 8px; }
+            
+            footer { padding: 40px 24px; }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-grid { grid-template-columns: repeat(7, 1fr); gap: 3px; }
+            .cal-cell { min-height: 40px; }
+            .tab-group { overflow-x: auto; width: 100%; white-space: nowrap; padding-bottom: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+    @include('partials.header')
+
+    <div class="shared-shell">
+        @include('partials.sidebar', ['activePage' => 'calendar'])
+
+        <main class="main-content">
+            <div class="content-header-row">
+                <div class="cal-title">Calendar</div>
+                <div class="header-actions">
+                    <button class="btn-download" onclick="openDownloadModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="sched-search-wrap">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" placeholder="Search here">
+                    </div>
+                </div>
+            </div>
+
+            <div class="calendar-section">
+
+                <div class="card">
+                    <div class="calendar-nav-bar">
+                        <div class="month-selector">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="cursor:pointer; opacity: 0.4;"><path d="m15 18-6-6 6-6"/></svg>
+                            March 2026
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="cursor:pointer; opacity: 0.4;"><path d="m9 18 6-6-6-6"/></svg>
+                        </div>
+                        <div class="tab-group">
+                            <button class="tab-btn">Daily</button><button class="tab-btn">Weekly</button><button class="tab-btn active">Monthly</button><button class="tab-btn">Yearly</button>
+                        </div>
+                        <button class="btn-new-schedule">+New Schedule</button>
+                    </div>
+
+                    <div class="calendar-grid">
+                        <div class="day-label">Monday</div><div class="day-label">Tuesday</div><div class="day-label">Wednesday</div><div class="day-label">Thursday</div><div class="day-label">Friday</div><div class="day-label">Saturday</div><div class="day-label">Sunday</div>
+                        
+                        <div class="cal-cell inactive">30</div><div class="cal-cell">1</div><div class="cal-cell">2</div>
+                        <div class="cal-cell">
+                            <div class="date-num"><div class="circle-num">3</div></div>
+                            <div class="event-box"><h5>Veterinary Nursing Assistant Course..</h5><p>Teacher 1</p></div>
+                        </div>
+                        <div class="cal-cell">4</div><div class="cal-cell">5</div><div class="cal-cell">6</div>
+                        <div class="cal-cell">7</div><div class="cal-cell">8</div><div class="cal-cell">9</div><div class="cal-cell">10</div><div class="cal-cell">11</div><div class="cal-cell">12</div><div class="cal-cell">13</div>
+                        <div class="cal-cell">14</div><div class="cal-cell">15</div><div class="cal-cell">16</div><div class="cal-cell">17</div><div class="cal-cell">18</div><div class="cal-cell">19</div><div class="cal-cell today-cell">20</div>
+                        <div class="cal-cell">21</div><div class="cal-cell">22</div><div class="cal-cell">
+                            <div class="date-num"><div class="circle-num">23</div></div>
+                            <div class="event-box"><h5>Rajamangala Identity Course..</h5><p>Teacher 2</p></div>
+                        </div>
+                        <div class="cal-cell">24</div><div class="cal-cell">25</div><div class="cal-cell">26</div><div class="cal-cell">27</div>
+                        <div class="cal-cell">28</div><div class="cal-cell">29</div><div class="cal-cell">30</div><div class="cal-cell">31</div><div class="cal-cell inactive">1</div><div class="cal-cell inactive">2</div><div class="cal-cell inactive">3</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="schedule-section">
+                <div class="section-title">Schedule</div>
+
+                <div class="card" style="padding-bottom: 20px;">
+                    <div class="sched-day-name">March 23, Wednesday</div>
+                    
+                    <div class="sched-card">
+                        <div class="sched-time">09:00 am<span>to</span>10:00 am</div>
+                        <div class="sched-v-bar" style="background:#f472b6;"></div>
+                        <div class="sched-info"><h4>Teacher 1</h4><h3>Veterinary Nursing Assistant Course</h3></div>
+                        <div class="dots-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>
+                    </div>
+
+                    <div class="sched-card">
+                        <div class="sched-time">01:00 pm<span>to</span>1:30 pm</div>
+                        <div class="sched-v-bar" style="background:#f97316;"></div>
+                        <div class="sched-info"><h4>Teacher 2</h4><h3 style="font-size: 13px;">Rajamangala Identity Course</h3></div>
+                        <div class="dots-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="f-brand">
+                <div class="f-logo-circle"><img src="{{ asset('images/icons/logo.svg') }}" alt="Logo"></div>
+                <p>Learn anytime and anywhere from IL2 career skills</p>
+            </div>
+            <div class="f-col">
+                <ul>
+                    <li><a href="#">Teach on IL2</a></li>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Help and Support</a></li>
+                </ul>
+            </div>
+            <div class="f-col">
+                <ul>
+                    <li><a href="#">Terms</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Cookies Policy</a></li>
+                    <li><a href="#">Career</a></li>
+                </ul>
+            </div>
+            <div class="f-right">
+                <select class="f-lang-select"><option>English</option><option>Thai</option></select>
+                <div class="f-socials">
+                    <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg"></a>
+                    <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg"></a>
+                    <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/c/ce/Twitter_Logo.png"></a>
+                </div>
+                <div class="f-apps">
+                    <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"></a>
+                    <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg"></a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL 1: Download -->
+    <div id="downloadModal" class="modal-overlay" onclick="closeModal(event, 'downloadModal')">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-title">Download</div>
+            <label class="modal-label">File type</label>
+            <select class="modal-select">
+                <option>PDF Standard</option>
+            </select>
+            <div class="dl-list">
+                <div class="dl-item active" onclick="gotoStep2()">
+                    <div class="dl-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
+                    <div class="dl-info"><h4>PDF Standard</h4><p>Best for documents (and emailing)</p></div>
+                </div>
+                <div class="dl-item" onclick="gotoStep2()">
+                    <div class="dl-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
+                    <div class="dl-info"><h4>PDF Printing</h4><p>Best for printing</p></div>
+                </div>
+                <div class="dl-item" onclick="gotoStep2()">
+                    <div class="dl-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
+                    <div class="dl-info"><h4>JPG</h4><p>Best for sharing</p></div>
+                </div>
+                <div class="dl-item" onclick="gotoStep2()">
+                    <div class="dl-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
+                    <div class="dl-info"><h4>PNG</h4><p>Best for complex images, illustrations</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Select Page -->
+    <div id="pageModal" class="modal-overlay" onclick="closeModal(event, 'pageModal')">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-title">Select page</div>
+            <label class="modal-label" style="color: #cbd5e0;">All pages</label>
+            <select class="modal-select">
+                <option>Page 4</option>
+            </select>
+            <div class="page-list" style="background:#f1f5f9; border-radius: 15px; padding: 10px;">
+                <div class="page-item"><div class="p-info"><div class="p-box"></div><div class="p-name">Page 1</div></div><div class="p-radio"></div></div>
+                <div class="page-item"><div class="p-info"><div class="p-box"></div><div class="p-name">Page 2</div></div><div class="p-radio"></div></div>
+                <div class="page-item"><div class="p-info"><div class="p-box"></div><div class="p-name">Page 3</div></div><div class="p-radio"></div></div>
+                <div class="page-item selected"><div class="p-info"><div class="p-box"></div><div class="p-name">Page 4</div></div><div class="p-radio"></div></div>
+            </div>
+            <button class="btn-done" onclick="document.getElementById('pageModal').style.display='none'">Done</button>
+        </div>
+    </div>
+
+    <script>
+        function openDownloadModal() {
+            document.getElementById('downloadModal').style.display = 'flex';
+        }
+
+        function gotoStep2() {
+            document.getElementById('downloadModal').style.display = 'none';
+            document.getElementById('pageModal').style.display = 'flex';
+        }
+
+        function closeModal(e, id) {
+            if (e.target.id === id) {
+                document.getElementById(id).style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
+
